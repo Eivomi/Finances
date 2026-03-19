@@ -3,10 +3,9 @@ package finance.service;
 import finance.model.Transaction;
 import finance.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
-
+import finance.dto.TransactionReportDTO;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+
 
 @Service
 public class TransactionService {
@@ -28,7 +27,7 @@ public class TransactionService {
    * Основна бізнес-логіка транзакції
    */
   public Transaction process(Transaction request) {
-    // 1. Перевірка через Fraud Service [cite: 495]
+    // 1. Перевірка через Fraud Service
     if (fraudService.isSuspicious(request.getAmount())) {
       request.setStatus("BLOCKED_BY_FRAUD_SYSTEM");
       return transactionRepository.save(request);
@@ -48,13 +47,12 @@ public class TransactionService {
       request.setStatus("FAILED: " + result);
     }
 
-    // 4. Зберігаємо фінальний стан у репозиторій [cite: 510]
+    // 4. Зберігаємо фінальний стан у репозиторій
     return transactionRepository.save(request);
   }
 
 
-   // Генерація звіту (DTO)
-  public Map<String, Object> generateReport() {
+  public TransactionReportDTO generateReport() {
     var allTransactions = transactionRepository.findAll();
 
     double totalVolume = allTransactions.stream()
@@ -62,12 +60,12 @@ public class TransactionService {
       .mapToDouble(Transaction::getAmount)
       .sum();
 
-    Map<String, Object> report = new HashMap<>();
-    report.put("totalTransactions", allTransactions.size());
-    report.put("totalVolume", totalVolume);
-    report.put("currency", "UAH");
-    report.put("reportDate", LocalDateTime.now());
-
-    return report;
+    // Створюємо об'єкт DTO замість HashMap
+    return new TransactionReportDTO(
+      (long) allTransactions.size(),
+      totalVolume,
+      "UAH",
+      LocalDateTime.now()
+    );
   }
 }
